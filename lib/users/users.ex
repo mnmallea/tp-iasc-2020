@@ -1,8 +1,11 @@
 defmodule Pigeon.User do
     use GenServer, Node
     
-    def start_link() do
-        GenServer.start_link(__MODULE__, [])
+    def login(user) do
+        {:ok, pid} = GenServer.start_link(__MODULE__, :ok)
+        message = GenServer.call(pid, {:login, user})
+        IO.puts message
+        pid
     end
 
     @impl true
@@ -11,26 +14,22 @@ defmodule Pigeon.User do
     end
     
     @impl true
-    def handle_call({:login, user}, _from, state) do
+    def handle_call({:login, user}, _from, _) do
         Pigeon.Network.spawn_task(Pigeon.UserRegistry, :add_to_registry, :server@localhost, [{user, Node.self()}])
-        {:reply, "Login satisfactorio", state}
+        {:reply, "Login satisfactorio", user}
     end
 
     @impl true
-    def handle_call({:show_connections, user}, _from, state) do
-        Pigeon.Network.spawn_task(Pigeon.UserRegistry, :show_connections, :server@localhost, [user])
-        {:reply, state, state}
-    end
-    
-    def login(pid, user) do
-        GenServer.call(pid, {:login, user})
+    def handle_cast({:show_connections}, state) do
+        Pigeon.Network.spawn_task(Pigeon.UserRegistry, :show_connections, :server@localhost, [{state, Node.self()}])
+        {:noreply, state}
     end
 
-    def show_connections(pid, user) do
-        GenServer.call(pid, {:show_connections, user})
+    def show_connections(pid) do
+        GenServer.cast(pid, {:show_connections})
     end
 
     def print_message(message) do
-        IO.puts message
+        IO.inspect message
     end
 end

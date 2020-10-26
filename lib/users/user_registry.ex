@@ -17,11 +17,10 @@ defmodule Pigeon.UserRegistry do
 
     @impl true
     def handle_call({:show_connections}, _from, state) do
-        IO.inspect state
         {:reply, state, state}
     end
 
-    @impl true
+    @impl true  
     def handle_cast({:broadcast_message, message}, state) do
         for node <- state do
             Pigeon.Network.spawn_task(Pigeon.User, :print_message, node, [message])
@@ -33,8 +32,9 @@ defmodule Pigeon.UserRegistry do
         GenServer.call(user, {:add_to_registry, node})
     end
 
-    def show_connections(user) do
-        GenServer.call(user, {:show_connections})
+    def show_connections({user, node}) do
+        connections = GenServer.call(user, {:show_connections})
+        Pigeon.Network.spawn_task(Pigeon.User, :print_message, node, [connections])
     end
 
     def broadcast_message(user, message) do
