@@ -41,4 +41,17 @@ defmodule Pigeon.UserRegistry do
   def broadcast_message(user, message) do
     GenServer.cast(user, {:broadcast_message, message})
   end
+
+  def create_group_room({me, name}) do
+    Pigeon.Rooms.GroupRoom.create_room(me, name)
+  end
+
+  def join_group_room({me, room}) do
+    Pigeon.Rooms.GroupRoom.join_room(room, me)
+  end
+
+  def send_message({room, text}) do
+    Pigeon.Rooms.GroupRoom.create_message(room, text)
+  end
+
 end

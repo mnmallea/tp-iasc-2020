@@ -31,11 +31,44 @@ defmodule Pigeon.User do
     {:noreply, state}
   end
 
+  @impl true
+  def handle_cast({:create_group_room, name}, state) do
+    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :create_group_room, :server@localhost, [{state, name}])
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:join_room, name}, state) do
+    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :join_group_room, :server@localhost, [{state, name}])
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:send_message_to_room, {room, text}}, state) do
+    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :send_message, :server@localhost, [{room, text}])
+
+    {:noreply, state}
+  end
+
   def show_connections(pid) do
     GenServer.cast(pid, {:show_connections})
   end
 
   def print_message(message) do
     IO.inspect(message)
+  end
+
+  def create_group_room(pid, name) do
+    GenServer.cast(pid, {:create_group_room, name})
+  end
+  
+  def join_room(pid, name) do
+    GenServer.cast(pid, {:join_room, name})
+  end
+
+  def send_message_to_room(pid, room, text) do
+    GenServer.cast(pid, {:send_message_to_room, {room, text}})
   end
 end
