@@ -2,8 +2,10 @@ defmodule Pigeon.Rooms.GroupRoom do
   use GenServer
   alias Pigeon.Message
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, %{users: [], messages: []})
+  def create_room(user, name) do
+    {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [], messages: []}, name: name)
+    GenServer.cast(pid, {:join_room, user})
+    pid
   end
 
   def create_message(pid, text) do
@@ -22,6 +24,10 @@ defmodule Pigeon.Rooms.GroupRoom do
     GenServer.cast(pid, {:delete_message, message_id})
   end
 
+  def join_room(pid, user) do
+    GenServer.cast(pid, {:join_room, user})
+  end
+
   @impl true
   def init(state) do
     {:ok, state}
@@ -35,6 +41,9 @@ defmodule Pigeon.Rooms.GroupRoom do
   @impl true
   def handle_cast({:create_message, %{text: text}}, state) do
     new_message = Message.build(text)
+    for user <- state.users do
+      Pigeon.UserRegistry.broadcast_message(user, text)
+    end
     {:noreply, %{state | messages: [new_message | state.messages]}}
   end
 
@@ -52,5 +61,10 @@ defmodule Pigeon.Rooms.GroupRoom do
       end)
 
     {:noreply, %{state | messages: new_messages}}
+  end
+
+  @impl true
+  def handle_cast({:join_room, user}, state) do
+    {:noreply, %{state | users: [user | state.users]}}
   end
 end
