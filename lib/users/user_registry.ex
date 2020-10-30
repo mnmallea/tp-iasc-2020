@@ -16,42 +16,39 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_call({:show_connections}, _from, state) do
-    {:reply, state, state}
+  def handle_cast({:show_connections, node}, state) do
+    GenServer.cast(node, {:print_message, state})
+    {:noreply, state}
   end
 
   @impl true
   def handle_cast({:broadcast_message, message}, state) do
     for node <- state do
-      Pigeon.Network.spawn_task(Pigeon.User, :print_message, node, [message])
+      GenServer.cast(node, {:print_message, message})
     end
-
     {:noreply, state}
   end
 
-  def add_to_registry({user, node}) do
-    GenServer.call(user, {:add_to_registry, node})
+  @impl true
+  def handle_cast({:create_group_room, {me, name}}, state) do
+    Pigeon.Rooms.GroupRoom.create_room(me, name)
+    {:noreply, state}
   end
 
-  def show_connections({user, node}) do
-    connections = GenServer.call(user, {:show_connections})
-    Pigeon.Network.spawn_task(Pigeon.User, :print_message, node, [connections])
+  @impl true
+  def handle_cast({:send_message, {room, text}}, state) do
+    Pigeon.Rooms.GroupRoom.create_message(room, text)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:join_group_room, {me, room}}, state) do
+    Pigeon.Rooms.GroupRoom.join_room(room, me)
+    {:noreply, state}
   end
 
   def broadcast_message(user, message) do
     GenServer.cast(user, {:broadcast_message, message})
-  end
-
-  def create_group_room({me, name}) do
-    Pigeon.Rooms.GroupRoom.create_room(me, name)
-  end
-
-  def join_group_room({me, room}) do
-    Pigeon.Rooms.GroupRoom.join_room(room, me)
-  end
-
-  def send_message({room, text}) do
-    Pigeon.Rooms.GroupRoom.create_message(room, text)
   end
 
 end

@@ -1,4 +1,5 @@
 defmodule Pigeon.Network do
+  # DEPRECATED
   def spawn_task(module, fun, recipient, args) do
     recipient
     |> remote_supervisor()

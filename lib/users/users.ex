@@ -2,7 +2,7 @@ defmodule Pigeon.User do
   use GenServer, Node
 
   def login(user) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, :ok)
+    {:ok, pid} = GenServer.start_link(__MODULE__, user, name: user)
     message = GenServer.call(pid, {:login, user})
     IO.puts(message)
     pid
@@ -14,50 +14,43 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:login, user}, _from, _) do
-    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :add_to_registry, :server@localhost, [
-      {user, Node.self()}
-    ])
-
+  def handle_call({:login, user}, _from, state) do
+    GenServer.call({state, :server@localhost}, {:add_to_registry, {state, Node.self()}})
     {:reply, "Login satisfactorio", user}
   end
 
   @impl true
   def handle_cast({:show_connections}, state) do
-    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :show_connections, :server@localhost, [
-      {state, Node.self()}
-    ])
-
+    GenServer.cast({state, :server@localhost}, {:show_connections, {state, Node.self()}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_group_room, name}, state) do
-    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :create_group_room, :server@localhost, [{state, name}])
-
+    GenServer.cast({state, :server@localhost}, {:create_group_room, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:join_room, name}, state) do
-    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :join_group_room, :server@localhost, [{state, name}])
-
+    GenServer.cast({state, :server@localhost}, {:join_group_room, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text}}, state) do
-    Pigeon.Network.spawn_task(Pigeon.UserRegistry, :send_message, :server@localhost, [{room, text}])
+    GenServer.cast({state, :server@localhost}, {:send_message, {room, text}})
+    {:noreply, state}
+  end
 
+  @impl true
+  def handle_cast({:print_message, message}, state) do
+    IO.inspect(message)
     {:noreply, state}
   end
 
   def show_connections(pid) do
     GenServer.cast(pid, {:show_connections})
-  end
-
-  def print_message(message) do
-    IO.inspect(message)
   end
 
   def create_group_room(pid, name) do
