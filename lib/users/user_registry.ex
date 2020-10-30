@@ -26,6 +26,7 @@ defmodule Pigeon.UserRegistry do
     for node <- state do
       GenServer.cast(node, {:print_message, message})
     end
+
     {:noreply, state}
   end
 
@@ -50,5 +51,4 @@ defmodule Pigeon.UserRegistry do
   def broadcast_message(user, message) do
     GenServer.cast(user, {:broadcast_message, message})
   end
-
 end

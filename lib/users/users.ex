@@ -56,7 +56,7 @@ defmodule Pigeon.User do
   def create_group_room(pid, name) do
     GenServer.cast(pid, {:create_group_room, name})
   end
-  
+
   def join_room(pid, name) do
     GenServer.cast(pid, {:join_room, name})
   end
