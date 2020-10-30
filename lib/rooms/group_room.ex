@@ -41,9 +41,11 @@ defmodule Pigeon.Rooms.GroupRoom do
   @impl true
   def handle_cast({:create_message, %{text: text}}, state) do
     new_message = Message.build(text)
+
     for user <- state.users do
       Pigeon.UserRegistry.broadcast_message(user, text)
     end
+
     {:noreply, %{state | messages: [new_message | state.messages]}}
   end
 
