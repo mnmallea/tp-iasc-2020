@@ -20,6 +20,12 @@ defmodule Pigeon.User do
   end
 
   @impl true
+  def handle_call({:join_room, name}, _from, state) do
+    result = GenServer.call({state, :server@localhost}, {:join_group_room, {state, name}})
+    {:reply, result, state}
+  end
+
+  @impl true
   def handle_cast({:show_connections}, state) do
     GenServer.cast({state, :server@localhost}, {:show_connections, {state, Node.self()}})
     {:noreply, state}
@@ -32,8 +38,8 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_cast({:join_room, name}, state) do
-    GenServer.cast({state, :server@localhost}, {:join_group_room, {state, name}})
+  def handle_cast({:create_chat, name}, state) do
+    GenServer.cast({state, :server@localhost}, {:create_chat, {state, name}})
     {:noreply, state}
   end
 
@@ -57,8 +63,12 @@ defmodule Pigeon.User do
     GenServer.cast(pid, {:create_group_room, name})
   end
 
+  def create_chat(pid, name) do
+    GenServer.cast(pid, {:create_chat, name})
+  end
+
   def join_room(pid, name) do
-    GenServer.cast(pid, {:join_room, name})
+    GenServer.call(pid, {:join_room, name})
   end
 
   def send_message_to_room(pid, room, text) do

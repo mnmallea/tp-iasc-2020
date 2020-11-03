@@ -16,6 +16,12 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
+  def handle_call({:join_group_room, {me, room}}, _from, state) do
+    result = Pigeon.Rooms.Room.join_room(room, me)
+    {:reply, result, state}
+  end
+
+  @impl true
   def handle_cast({:show_connections, node}, state) do
     GenServer.cast(node, {:print_message, state})
     {:noreply, state}
@@ -37,14 +43,14 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_cast({:send_message, {room, text}}, state) do
-    Pigeon.Rooms.GroupRoom.create_message(room, text)
+  def handle_cast({:create_chat, {me, name}}, state) do
+    Pigeon.Rooms.IndividualRoom.create_room(me, name)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:join_group_room, {me, room}}, state) do
-    Pigeon.Rooms.GroupRoom.join_room(room, me)
+  def handle_cast({:send_message, {room, text}}, state) do
+    Pigeon.Rooms.Room.create_message(room, text)
     {:noreply, state}
   end
 
