@@ -34,14 +34,6 @@ defmodule Pigeon.Rooms.Room do
         GenServer.call(pid, {:join_room, user})
     end
 
-    def can_join(type, users) do
-        if type == :group do
-            true
-        else 
-            length(users) <= 2
-        end
-    end
-
     @impl true
     def handle_call({:list_messages}, _from, state) do
         {:reply, state.messages, state}
@@ -49,9 +41,9 @@ defmodule Pigeon.Rooms.Room do
 
     @impl true
     def handle_call({:join_room, user}, _from, state) do
-        users = Enum.uniq([user | state.users])
+        users = [user | state.users]
 
-        if can_join(state.type, users) do
+        if Pigeon.Rooms.Join.can_join(state.type, users) do
             {:reply, "Ha sido agregado a la sala", %{state | users: users}}
         else
             {:reply, "No ha sido agregado a la sala", state}
@@ -61,6 +53,8 @@ defmodule Pigeon.Rooms.Room do
     @impl true
     def handle_cast({:create_message, %{text: text}}, state) do
         new_message = Message.build(text)
+
+        Pigeon.Rooms.MessageCleaner.schedule_clean(state.type, self(), new_message.id, 5)
     
         for user <- state.users do
             Pigeon.UserRegistry.broadcast_message(user, text)
@@ -83,5 +77,14 @@ defmodule Pigeon.Rooms.Room do
             end)
     
         {:noreply, %{state | messages: new_messages}}
+    end
+
+    @impl true
+    def handle_info({:delete_message, message_id}, state) do
+        IO.puts("Info")
+        IO.puts(message_id)
+
+        delete_message(self(), message_id)
+        {:noreply, state}
     end
   end

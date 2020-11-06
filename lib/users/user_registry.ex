@@ -49,6 +49,12 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
+  def handle_cast({:create_secret_room, {me, name}}, state) do
+    Pigeon.Rooms.SecretRoom.create_room(me, name)
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast({:send_message, {room, text}}, state) do
     Pigeon.Rooms.Room.create_message(room, text)
     {:noreply, state}

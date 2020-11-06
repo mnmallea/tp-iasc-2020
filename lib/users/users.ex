@@ -44,6 +44,12 @@ defmodule Pigeon.User do
   end
 
   @impl true
+  def handle_cast({:create_secret_room, name}, state) do
+    GenServer.cast({state, :server@localhost}, {:create_secret_room, {state, name}})
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast({:send_message_to_room, {room, text}}, state) do
     GenServer.cast({state, :server@localhost}, {:send_message, {room, text}})
     {:noreply, state}
@@ -65,6 +71,10 @@ defmodule Pigeon.User do
 
   def create_chat(pid, name) do
     GenServer.cast(pid, {:create_chat, name})
+  end
+
+  def create_secret_room(pid, name) do
+    GenServer.cast(pid, {:create_secret_room, name})
   end
 
   def join_room(pid, name) do
