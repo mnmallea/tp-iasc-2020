@@ -83,10 +83,12 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_call({:update_message, id, %{text: text}, _sender}, _from, state) do
+  def handle_call({:update_message, id, %{text: text}, sender}, _from, state) do
     new_messages =
       Enum.map(state.messages, fn message ->
-        if message.id == id, do: Message.set_text(message, text), else: message
+        if message.id == id && message.sender_pid == sender,
+          do: Message.set_text(message, text),
+          else: message
       end)
 
     {:reply, {:ok}, %{state | messages: new_messages}}
@@ -114,16 +116,15 @@ defmodule Pigeon.Rooms.GroupRoom do
   @impl true
   def handle_call({:remove_user, user, sender}, _from, state) do
     as_admin(sender, state, fn ->
-      {user, new_users} = Map.pop(state.users, user)
+      {_, new_users} = Map.pop(state.users, user)
       {:reply, {:ok}, %{state | users: new_users}}
     end)
   end
 
-  defp broadcast_message(state, message) do
-    for user <- Map.keys(state.users) do
-      # Pigeon.UserRegistry.broadcast_message(user, message)
-      nil
-    end
+  defp broadcast_message(_state, _message) do
+    # for user <- Map.keys(state.users) do
+    #   Pigeon.UserRegistry.broadcast_message(user, message)
+    # end
   end
 
   defp as_admin(user, state, action) do
