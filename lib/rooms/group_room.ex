@@ -29,8 +29,12 @@ defmodule Pigeon.Rooms.GroupRoom do
     GenServer.call(pid, {:delete_message, message_id, sender})
   end
 
-  def join_room(pid, {user, sender}) do
-    GenServer.call(pid, {:join_room, user, sender})
+  def add_user(pid, {user, sender}) do
+    GenServer.call(pid, {:add_user, user, sender})
+  end
+
+  def remove_user(pid, {user, sender}) do
+    GenServer.call(pid, {:remove_user, user, sender})
   end
 
   def get_user_info(pid, user) do
@@ -89,9 +93,9 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_call({:join_room, user, sender}, _from, state) do
+  def handle_call({:add_user, user, sender}, _from, state) do
     as_admin(sender, state, fn ->
-      {:reply, {:ok}, %{state | users: add_user(state.users, user)}}
+      {:reply, {:ok}, %{state | users: put_user(state.users, user)}}
     end)
   end
 
@@ -103,6 +107,14 @@ defmodule Pigeon.Rooms.GroupRoom do
           {current, %{current | role: "admin"}}
         end)
 
+      {:reply, {:ok}, %{state | users: new_users}}
+    end)
+  end
+
+  @impl true
+  def handle_call({:remove_user, user, sender}, _from, state) do
+    as_admin(sender, state, fn ->
+      {user, new_users} = Map.pop(state.users, user)
       {:reply, {:ok}, %{state | users: new_users}}
     end)
   end
@@ -122,7 +134,7 @@ defmodule Pigeon.Rooms.GroupRoom do
     end
   end
 
-  defp add_user(users, new_user_pid, role \\ "user") do
+  defp put_user(users, new_user_pid, role \\ "user") do
     Map.put_new(users, new_user_pid, %{role: role})
   end
 

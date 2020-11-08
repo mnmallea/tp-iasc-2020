@@ -47,16 +47,17 @@ defmodule Pigeon.GroupRoomTest do
     assert Enum.empty?(messages)
   end
 
-  test "owner can add new participants to room", %{room: room, owner: owner} do
+  test "admin can add and remove new participants to room", %{room: room, owner: admin} do
     {:ok, other_user} = User.start_link(:other)
-    {status} = GroupRoom.join_room(room, {other_user, owner})
-
-    assert status == :ok
+    assert {:ok} = GroupRoom.add_user(room, {other_user, admin})
+    assert {:ok, _} = GroupRoom.get_user_info(room, other_user)
+    assert {:ok} = GroupRoom.remove_user(room, {other_user, admin})
+    assert {:error, :not_found} = GroupRoom.get_user_info(room, other_user)
   end
 
-  test "owner can give admin rights to other user in room", %{room: room, owner: owner} do
+  test "admin can give admin rights to other user in room", %{room: room, owner: owner} do
     {:ok, other_user} = User.start_link(:other_2)
-    {:ok} = GroupRoom.join_room(room, {other_user, owner})
+    {:ok} = GroupRoom.add_user(room, {other_user, owner})
     {:ok} = GroupRoom.upgrade_user(room, {other_user, owner})
 
     {:ok, user_info} = GroupRoom.get_user_info(room, other_user)
@@ -73,7 +74,7 @@ defmodule Pigeon.GroupRoomTest do
 
   test "a normal user can not delete other user messages", %{room: room, owner: admin} do
     {:ok, other_user} = User.start_link(:other_4)
-    {:ok} = GroupRoom.join_room(room, {other_user, admin})
+    {:ok} = GroupRoom.add_user(room, {other_user, admin})
     {:ok, message} = GroupRoom.create_message(room, {"hola", admin})
 
     {:error, :forbidden} = GroupRoom.delete_message(room, {message.id, other_user})

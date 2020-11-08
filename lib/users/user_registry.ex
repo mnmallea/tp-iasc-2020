@@ -44,7 +44,7 @@ defmodule Pigeon.UserRegistry do
 
   @impl true
   def handle_cast({:join_group_room, {me, room}}, state) do
-    Pigeon.Rooms.GroupRoom.join_room(room, me)
+    Pigeon.Rooms.GroupRoom.add_user(room, me)
     {:noreply, state}
   end
 
