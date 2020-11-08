@@ -3,7 +3,7 @@ defmodule Pigeon.Rooms.GroupRoom do
   alias Pigeon.Message
 
   def start_link(%{owner: owner, name: name}) do
-    GenServer.start_link(__MODULE__, %{users: [%{owner => %{role: "admin"}}], messages: []},
+    GenServer.start_link(__MODULE__, %{users: %{owner => %{role: "admin"}}, messages: []},
       name: name
     )
   end
@@ -13,24 +13,24 @@ defmodule Pigeon.Rooms.GroupRoom do
     pid
   end
 
-  def create_message(pid, text) do
-    GenServer.call(pid, {:create_message, %{text: text}})
+  def create_message(pid, {text, sender}) do
+    GenServer.call(pid, {:create_message, %{text: text}, sender})
   end
 
   def list_messages(pid) do
     GenServer.call(pid, {:list_messages})
   end
 
-  def update_message(pid, message_id, text) do
-    GenServer.call(pid, {:update_message, message_id, %{text: text}})
+  def update_message(pid, {message_id, text, sender}) do
+    GenServer.call(pid, {:update_message, message_id, %{text: text}, sender})
   end
 
-  def delete_message(pid, message_id) do
-    GenServer.call(pid, {:delete_message, message_id})
+  def delete_message(pid, {message_id, sender}) do
+    GenServer.call(pid, {:delete_message, message_id, sender})
   end
 
-  def join_room(pid, user) do
-    GenServer.call(pid, {:join_room, user})
+  def join_room(pid, {user, sender}) do
+    GenServer.call(pid, {:join_room, user, sender})
   end
 
   @impl true
@@ -44,8 +44,9 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_call({:create_message, %{text: text}}, from, state) do
-    new_message = Message.build(text, from)
+  def handle_call({:create_message, %{text: text}, sender}, _from, state) do
+    new_message = Message.build(text, sender)
+
     for user <- Map.keys(state.users) do
       Pigeon.UserRegistry.broadcast_message(user, text)
     end
@@ -54,13 +55,13 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_call({:delete_message, message_id}, from, state) do
+  def handle_call({:delete_message, message_id, _sender}, _from, state) do
     new_messages = Enum.filter(state.messages, &(&1.id != message_id))
     {:reply, {:ok}, %{state | messages: new_messages}}
   end
 
   @impl true
-  def handle_call({:update_message, id, %{text: text}}, from, state) do
+  def handle_call({:update_message, id, %{text: text}, _sender}, _from, state) do
     new_messages =
       Enum.map(state.messages, fn message ->
         if message.id == id, do: Message.set_text(message, text), else: message
@@ -70,17 +71,17 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_call({:join_room, user}, from, state) do
-    if is_admin?(from, state.users) do
-      {:reply, {:ok}, %{state | users: add_user(state.user, user)}}
+  def handle_call({:join_room, user, sender}, _from, state) do
+    if is_admin?(sender, state.users) do
+      {:reply, {:ok}, %{state | users: add_user(state.users, user)}}
     else
       {:reply, {:error, :unauthorized}, state}
     end
   end
 
   @impl true
-  def handle_call({:upgrade_user, user}, from, state) do
-    if is_admin?(from, state.users) do
+  def handle_call({:upgrade_user, user, sender}, _from, state) do
+    if is_admin?(sender, state.users) do
       new_users =
         Map.get_and_update(state.users, user, fn current ->
           {current, %{current | role: "admin"}}

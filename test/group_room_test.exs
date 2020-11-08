@@ -12,9 +12,10 @@ defmodule Pigeon.GroupRoomTest do
 
   test "creates a message", %{room: room, owner: owner} do
     message_text = "Welcome to Pigeon"
-    { status } = User.send_message_to_room(room, owner, message_text)
+    {status, message} = GroupRoom.create_message(room, {message_text, owner})
 
     assert status == :ok
+    assert message
 
     [received_message] = GroupRoom.list_messages(room)
 
@@ -22,23 +23,23 @@ defmodule Pigeon.GroupRoomTest do
     assert received_message.id
   end
 
-  test "creates and update a message", %{room: room} do
+  test "creates and update a message", %{room: room, owner: owner} do
     old_text = "old message text"
     new_text = "new message text"
-    GroupRoom.create_message(room, old_text)
+    GroupRoom.create_message(room, {old_text, owner})
     [%Message{id: created_id}] = GroupRoom.list_messages(room)
-    GroupRoom.update_message(room, created_id, new_text)
+    GroupRoom.update_message(room, {created_id, new_text, owner})
     [%Message{text: received_text}] = GroupRoom.list_messages(room)
 
     assert new_text == received_text
   end
 
-  test "creates and deletes a message", %{room: room} do
+  test "creates and deletes a message", %{room: room, owner: sender} do
     message_text = "some message"
-    GroupRoom.create_message(room, message_text)
+    {:ok, _} = GroupRoom.create_message(room, {message_text, sender})
     [%Message{id: created_id}] = GroupRoom.list_messages(room)
 
-    GroupRoom.delete_message(room, created_id)
+    {:ok } = GroupRoom.delete_message(room, {created_id, sender})
 
     messages = GroupRoom.list_messages(room)
 
@@ -47,7 +48,8 @@ defmodule Pigeon.GroupRoomTest do
 
   test "owner can add new participants to room", %{room: room, owner: owner} do
     other_user = User.start_link(:other)
-    {status} = User.add_user_to_room(owner, room, other_user)
+    {status} = GroupRoom.join_room(room, {other_user, owner})
+
     assert status == :ok
   end
 end
