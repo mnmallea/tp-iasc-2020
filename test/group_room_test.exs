@@ -1,5 +1,6 @@
 defmodule Pigeon.GroupRoomTest do
   use ExUnit.Case, async: true
+
   alias Pigeon.Rooms.GroupRoom
   alias Pigeon.Message
   alias Pigeon.User
@@ -56,10 +57,25 @@ defmodule Pigeon.GroupRoomTest do
   test "owner can give admin rights to other user in room", %{room: room, owner: owner} do
     {:ok, other_user} = User.start_link(:other_2)
     {:ok} = GroupRoom.join_room(room, {other_user, owner})
-    { :ok } = GroupRoom.upgrade_user(room, {other_user, owner})
+    {:ok} = GroupRoom.upgrade_user(room, {other_user, owner})
 
     {:ok, user_info} = GroupRoom.get_user_info(room, other_user)
 
     assert user_info.role == "admin"
+  end
+
+  test "admin can delete other user messages", %{room: room, owner: admin} do
+    {:ok, other_user} = User.start_link(:other_3)
+    {:ok, message} = GroupRoom.create_message(room, {"hola", other_user})
+
+    {:ok} = GroupRoom.delete_message(room, {message.id, admin})
+  end
+
+  test "a normal user can not delete other user messages", %{room: room, owner: admin} do
+    {:ok, other_user} = User.start_link(:other_4)
+    {:ok} = GroupRoom.join_room(room, {other_user, admin})
+    {:ok, message} = GroupRoom.create_message(room, {"hola", admin})
+
+    {:error, :forbidden} = GroupRoom.delete_message(room, {message.id, other_user})
   end
 end

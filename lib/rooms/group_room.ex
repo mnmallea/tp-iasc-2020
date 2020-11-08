@@ -62,18 +62,20 @@ defmodule Pigeon.Rooms.GroupRoom do
   @impl true
   def handle_call({:create_message, %{text: text}, sender}, _from, state) do
     new_message = Message.build(text, sender)
-
-    for user <- Map.keys(state.users) do
-      Pigeon.UserRegistry.broadcast_message(user, text)
-    end
-
+    broadcast_message(state, new_message)
     {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}
   end
 
   @impl true
-  def handle_call({:delete_message, message_id, _sender}, _from, state) do
-    new_messages = Enum.filter(state.messages, &(&1.id != message_id))
-    {:reply, {:ok}, %{state | messages: new_messages}}
+  def handle_call({:delete_message, message_id, sender}, _from, state) do
+    index = Enum.find_index(state.messages, fn message -> message.id == message_id end)
+    message = Enum.at(state.messages, index)
+
+    case message do
+      %Message{sender_pid: ^sender} -> delete_message_by_index(state, index)
+      nil -> {:reply, {:error, :not_found}, state}
+      _ -> as_admin(sender, state, fn -> delete_message_by_index(state, index) end)
+    end
   end
 
   @impl true
@@ -88,24 +90,27 @@ defmodule Pigeon.Rooms.GroupRoom do
 
   @impl true
   def handle_call({:join_room, user, sender}, _from, state) do
-    if is_admin?(sender, state.users) do
+    as_admin(sender, state, fn ->
       {:reply, {:ok}, %{state | users: add_user(state.users, user)}}
-    else
-      {:reply, {:error, :unauthorized}, state}
-    end
+    end)
   end
 
   @impl true
   def handle_call({:upgrade_user, user, sender}, _from, state) do
-    if is_admin?(sender, state.users) do
+    as_admin(sender, state, fn ->
       {_, new_users} =
         Map.get_and_update(state.users, user, fn current ->
           {current, %{current | role: "admin"}}
         end)
 
       {:reply, {:ok}, %{state | users: new_users}}
-    else
-      {:reply, {:error, :unauthorized}, state}
+    end)
+  end
+
+  defp broadcast_message(state, message) do
+    for user <- Map.keys(state.users) do
+      # Pigeon.UserRegistry.broadcast_message(user, message)
+      nil
     end
   end
 
@@ -113,7 +118,7 @@ defmodule Pigeon.Rooms.GroupRoom do
     if is_admin?(user, state.users) do
       action.()
     else
-      { :reply, {:error, :unauthorized }, state}
+      {:reply, {:error, :forbidden}, state}
     end
   end
 
@@ -122,4 +127,8 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   defp is_admin?(who, users), do: users[who].role == "admin"
+
+  defp delete_message_by_index(state, index) do
+    {:reply, {:ok}, %{state | messages: List.delete_at(state.messages, index)}}
+  end
 end
