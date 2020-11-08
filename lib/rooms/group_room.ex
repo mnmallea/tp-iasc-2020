@@ -33,9 +33,25 @@ defmodule Pigeon.Rooms.GroupRoom do
     GenServer.call(pid, {:join_room, user, sender})
   end
 
+  def get_user_info(pid, user) do
+    GenServer.call(pid, {:get_user_info, user})
+  end
+
+  def upgrade_user(pid, {user, sender}) do
+    GenServer.call(pid, {:upgrade_user, user, sender})
+  end
+
   @impl true
   def init(state) do
     {:ok, state}
+  end
+
+  @impl true
+  def handle_call({:get_user_info, user}, _from, state) do
+    case state.users[user] do
+      nil -> {:reply, {:error, :not_found}, state}
+      user_data -> {:reply, {:ok, user_data}, state}
+    end
   end
 
   @impl true
@@ -82,14 +98,22 @@ defmodule Pigeon.Rooms.GroupRoom do
   @impl true
   def handle_call({:upgrade_user, user, sender}, _from, state) do
     if is_admin?(sender, state.users) do
-      new_users =
+      {_, new_users} =
         Map.get_and_update(state.users, user, fn current ->
           {current, %{current | role: "admin"}}
         end)
 
-      {:reply, {:error, :unauthorized}, %{state | users: new_users}}
+      {:reply, {:ok}, %{state | users: new_users}}
     else
       {:reply, {:error, :unauthorized}, state}
+    end
+  end
+
+  defp as_admin(user, state, action) do
+    if is_admin?(user, state.users) do
+      action.()
+    else
+      { :reply, {:error, :unauthorized }, state}
     end
   end
 

@@ -39,7 +39,7 @@ defmodule Pigeon.GroupRoomTest do
     {:ok, _} = GroupRoom.create_message(room, {message_text, sender})
     [%Message{id: created_id}] = GroupRoom.list_messages(room)
 
-    {:ok } = GroupRoom.delete_message(room, {created_id, sender})
+    {:ok} = GroupRoom.delete_message(room, {created_id, sender})
 
     messages = GroupRoom.list_messages(room)
 
@@ -47,9 +47,19 @@ defmodule Pigeon.GroupRoomTest do
   end
 
   test "owner can add new participants to room", %{room: room, owner: owner} do
-    other_user = User.start_link(:other)
+    {:ok, other_user} = User.start_link(:other)
     {status} = GroupRoom.join_room(room, {other_user, owner})
 
     assert status == :ok
+  end
+
+  test "owner can give admin rights to other user in room", %{room: room, owner: owner} do
+    {:ok, other_user} = User.start_link(:other_2)
+    {:ok} = GroupRoom.join_room(room, {other_user, owner})
+    { :ok } = GroupRoom.upgrade_user(room, {other_user, owner})
+
+    {:ok, user_info} = GroupRoom.get_user_info(room, other_user)
+
+    assert user_info.role == "admin"
   end
 end
