@@ -1,9 +1,13 @@
 defmodule Pigeon.User do
   use GenServer, Node
 
-  def login(user) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, user, name: user)
-    message = GenServer.call(pid, {:login, user})
+  def start_link(name) do
+    GenServer.start_link(__MODULE__, name, name: name)
+  end
+
+  def login(user_name) do
+    {:ok, pid} = start_link(user_name)
+    message = GenServer.call(pid, {:login, user_name})
     IO.puts(message)
     pid
   end
@@ -39,8 +43,13 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text}}, state) do
-    GenServer.cast({state, :server@localhost}, {:send_message, {room, text}})
+    GenServer.cast(room, {:send_message, {room, text}})
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:add_user_to_room, {room, user}}, _from, state) do
+    {:reply, Pigeon.Rooms.GroupRoom.join_room(room, user), state}
   end
 
   @impl true
@@ -63,5 +72,9 @@ defmodule Pigeon.User do
 
   def send_message_to_room(pid, room, text) do
     GenServer.cast(pid, {:send_message_to_room, {room, text}})
+  end
+
+  def add_user_to_room(this, user, room) do
+    GenServer.call(this, :add_user_to_room, {user, room})
   end
 end

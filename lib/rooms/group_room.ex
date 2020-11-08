@@ -2,14 +2,19 @@ defmodule Pigeon.Rooms.GroupRoom do
   use GenServer
   alias Pigeon.Message
 
+  def start_link(%{owner: owner, name: name}) do
+    GenServer.start_link(__MODULE__, %{users: [%{owner => %{role: "admin"}}], messages: []},
+      name: name
+    )
+  end
+
   def create_room(user, name) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [], messages: []}, name: name)
-    GenServer.cast(pid, {:join_room, user})
+    {:ok, pid} = start_link(%{owner: user, name: name})
     pid
   end
 
   def create_message(pid, text) do
-    GenServer.cast(pid, {:create_message, %{text: text}})
+    GenServer.call(pid, {:create_message, %{text: text}})
   end
 
   def list_messages(pid) do
@@ -17,15 +22,15 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   def update_message(pid, message_id, text) do
-    GenServer.cast(pid, {:update_message, message_id, %{text: text}})
+    GenServer.call(pid, {:update_message, message_id, %{text: text}})
   end
 
   def delete_message(pid, message_id) do
-    GenServer.cast(pid, {:delete_message, message_id})
+    GenServer.call(pid, {:delete_message, message_id})
   end
 
   def join_room(pid, user) do
-    GenServer.cast(pid, {:join_room, user})
+    GenServer.call(pid, {:join_room, user})
   end
 
   @impl true
@@ -39,34 +44,57 @@ defmodule Pigeon.Rooms.GroupRoom do
   end
 
   @impl true
-  def handle_cast({:create_message, %{text: text}}, state) do
-    new_message = Message.build(text)
-
-    for user <- state.users do
+  def handle_call({:create_message, %{text: text}}, from, state) do
+    new_message = Message.build(text, from)
+    for user <- Map.keys(state.users) do
       Pigeon.UserRegistry.broadcast_message(user, text)
     end
 
-    {:noreply, %{state | messages: [new_message | state.messages]}}
+    {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}
   end
 
   @impl true
-  def handle_cast({:delete_message, message_id}, state) do
+  def handle_call({:delete_message, message_id}, from, state) do
     new_messages = Enum.filter(state.messages, &(&1.id != message_id))
-    {:noreply, %{state | messages: new_messages}}
+    {:reply, {:ok}, %{state | messages: new_messages}}
   end
 
   @impl true
-  def handle_cast({:update_message, id, %{text: text}}, state) do
+  def handle_call({:update_message, id, %{text: text}}, from, state) do
     new_messages =
       Enum.map(state.messages, fn message ->
         if message.id == id, do: Message.set_text(message, text), else: message
       end)
 
-    {:noreply, %{state | messages: new_messages}}
+    {:reply, {:ok}, %{state | messages: new_messages}}
   end
 
   @impl true
-  def handle_cast({:join_room, user}, state) do
-    {:noreply, %{state | users: [user | state.users]}}
+  def handle_call({:join_room, user}, from, state) do
+    if is_admin?(from, state.users) do
+      {:reply, {:ok}, %{state | users: add_user(state.user, user)}}
+    else
+      {:reply, {:error, :unauthorized}, state}
+    end
   end
+
+  @impl true
+  def handle_call({:upgrade_user, user}, from, state) do
+    if is_admin?(from, state.users) do
+      new_users =
+        Map.get_and_update(state.users, user, fn current ->
+          {current, %{current | role: "admin"}}
+        end)
+
+      {:reply, {:error, :unauthorized}, %{state | users: new_users}}
+    else
+      {:reply, {:error, :unauthorized}, state}
+    end
+  end
+
+  defp add_user(users, new_user_pid, role \\ "user") do
+    Map.put_new(users, new_user_pid, %{role: role})
+  end
+
+  defp is_admin?(who, users), do: users[who].role == "admin"
 end

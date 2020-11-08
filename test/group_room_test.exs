@@ -2,15 +2,19 @@ defmodule Pigeon.GroupRoomTest do
   use ExUnit.Case, async: true
   alias Pigeon.Rooms.GroupRoom
   alias Pigeon.Message
+  alias Pigeon.User
 
   setup do
-    {:ok, room} = GroupRoom.start_link(nil)
-    %{room: room}
+    {:ok, user_pid} = User.start_link(:tincho)
+    {:ok, room} = GroupRoom.start_link(%{owner: user_pid, name: :sala_1})
+    %{room: room, owner: user_pid}
   end
 
-  test "creates a message", %{room: room} do
+  test "creates a message", %{room: room, owner: owner} do
     message_text = "Welcome to Pigeon"
-    GroupRoom.create_message(room, message_text)
+    { status } = User.send_message_to_room(room, owner, message_text)
+
+    assert status == :ok
 
     [received_message] = GroupRoom.list_messages(room)
 
@@ -39,5 +43,11 @@ defmodule Pigeon.GroupRoomTest do
     messages = GroupRoom.list_messages(room)
 
     assert Enum.empty?(messages)
+  end
+
+  test "owner can add new participants to room", %{room: room, owner: owner} do
+    other_user = User.start_link(:other)
+    {status} = User.add_user_to_room(owner, room, other_user)
+    assert status == :ok
   end
 end
