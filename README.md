@@ -62,3 +62,9 @@ Para ver los mensajes, en el nodo server:
 ```bash
 Pigeon.Rooms.Room.list_messages(IASC)
 ```
+
+Para crear un mensaje secreto (se elimina automáticamente) a un room secreto:
+
+```bash
+Pigeon.User.send_message_to_room(pid, IASC, "Hola mundo!", 10000) # ttl es en milisegundos
+```

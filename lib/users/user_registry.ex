@@ -55,8 +55,8 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_cast({:send_message, {room, text}}, state) do
-    Pigeon.Rooms.Room.create_message(room, text)
+  def handle_cast({:send_message, {room, text, ttl}}, state) do
+    Pigeon.Rooms.Room.create_message(room, text, ttl)
     {:noreply, state}
   end
 

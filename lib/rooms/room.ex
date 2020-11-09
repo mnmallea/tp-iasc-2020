@@ -14,8 +14,8 @@ defmodule Pigeon.Rooms.Room do
         pid
       end
 
-    def create_message(pid, text) do
-        GenServer.cast(pid, {:create_message, %{text: text}})
+    def create_message(pid, text, ttl) do
+        GenServer.cast(pid, {:create_message, %{text: text, ttl: ttl}})
     end
 
     def list_messages(pid) do
@@ -51,10 +51,10 @@ defmodule Pigeon.Rooms.Room do
     end
 
     @impl true
-    def handle_cast({:create_message, %{text: text}}, state) do
+    def handle_cast({:create_message, %{text: text, ttl: ttl}}, state) do
         new_message = Message.build(text)
 
-        Pigeon.Rooms.MessageCleaner.schedule_clean(state.type, self(), new_message.id, 5)
+        Pigeon.Rooms.MessageCleaner.schedule_clean(state.type, self(), new_message.id, ttl)
     
         for user <- state.users do
             Pigeon.UserRegistry.broadcast_message(user, text)
@@ -81,9 +81,8 @@ defmodule Pigeon.Rooms.Room do
 
     @impl true
     def handle_info({:delete_message, message_id}, state) do
-        IO.puts("Info")
-        IO.puts(message_id)
-
+        IO.puts("Deleting #{message_id}")
+        
         delete_message(self(), message_id)
         {:noreply, state}
     end

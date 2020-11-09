@@ -50,8 +50,8 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_cast({:send_message_to_room, {room, text}}, state) do
-    GenServer.cast({state, :server@localhost}, {:send_message, {room, text}})
+  def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
+    GenServer.cast({state, :server@localhost}, {:send_message, {room, text, ttl}})
     {:noreply, state}
   end
 
@@ -81,7 +81,11 @@ defmodule Pigeon.User do
     GenServer.call(pid, {:join_room, name})
   end
 
+  def send_message_to_room(pid, room, text, ttl) do
+    GenServer.cast(pid, {:send_message_to_room, {room, text, ttl}})
+  end
+
   def send_message_to_room(pid, room, text) do
-    GenServer.cast(pid, {:send_message_to_room, {room, text}})
+    GenServer.cast(pid, {:send_message_to_room, {room, text, -1}})
   end
 end
