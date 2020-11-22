@@ -1,9 +1,13 @@
 defmodule Pigeon.User do
   use GenServer, Node
 
-  def login(user) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, user, name: user)
-    message = GenServer.call(pid, {:login, user})
+  def start_link(name) do
+    GenServer.start_link(__MODULE__, name, name: name)
+  end
+
+  def login(user_name) do
+    {:ok, pid} = start_link(user_name)
+    message = GenServer.call(pid, {:login, user_name})
     IO.puts(message)
     pid
   end
