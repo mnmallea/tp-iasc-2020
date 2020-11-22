@@ -22,7 +22,8 @@ defmodule Pigeon.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:mock, "~> 0.3.0", only: :test}
     ]
   end
 end
