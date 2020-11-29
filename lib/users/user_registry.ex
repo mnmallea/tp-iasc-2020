@@ -22,6 +22,12 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
+  def handle_call({:add_user, {me, other, room}}, _from, state) do
+    result = Pigeon.Rooms.Room.add_user(room, me, other)
+    {:reply, result, state}
+  end
+
+  @impl true
   def handle_cast({:show_connections, node}, state) do
     GenServer.cast(node, {:print_message, state})
     {:noreply, state}
@@ -61,6 +67,7 @@ defmodule Pigeon.UserRegistry do
   end
 
   def broadcast_message(user, message) do
+    IO.puts(inspect(user))
     GenServer.cast(user, {:broadcast_message, message})
   end
 end

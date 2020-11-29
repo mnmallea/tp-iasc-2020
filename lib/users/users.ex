@@ -30,6 +30,12 @@ defmodule Pigeon.User do
   end
 
   @impl true
+  def handle_call({:add_user, user, name}, _from, state) do
+    result = GenServer.call({state, :server@localhost}, {:add_user, {state, user, name}})
+    {:reply, result, state}
+  end
+
+  @impl true
   def handle_cast({:show_connections}, state) do
     GenServer.cast({state, :server@localhost}, {:show_connections, {state, Node.self()}})
     {:noreply, state}
@@ -83,6 +89,10 @@ defmodule Pigeon.User do
 
   def join_room(pid, name) do
     GenServer.call(pid, {:join_room, name})
+  end
+
+  def add_user(pid, user, name) do
+    GenServer.call(pid, {:add_user, user, name})
   end
 
   def send_message_to_room(pid, room, text, ttl) do

@@ -8,7 +8,7 @@ defmodule Pigeon.Rooms.Room do
     end
 
     def create_room(user, name, type) do
-        {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [], messages: [], type: type}, name: name)
+        {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [], messages: [], type: type, admins: [user]}, name: name)
         
         Pigeon.Rooms.Room.join_room(pid, user)
         pid
@@ -30,7 +30,12 @@ defmodule Pigeon.Rooms.Room do
         GenServer.cast(pid, {:delete_message, message_id})
     end
 
+    def add_user(pid, admin, user) do
+        GenServer.call(pid, {:add_user, admin, user})
+    end
+
     def join_room(pid, user) do
+        IO.puts(inspect(user))
         GenServer.call(pid, {:join_room, user})
     end
 
@@ -44,6 +49,17 @@ defmodule Pigeon.Rooms.Room do
         users = [user | state.users]
 
         if Pigeon.Rooms.Join.can_join(state.type, users) do
+            {:reply, "Ha sido agregado a la sala", %{state | users: users}}
+        else
+            {:reply, "No ha sido agregado a la sala", state}
+        end
+    end
+
+    @impl true
+    def handle_call({:add_user, admin,user}, _from, state) do
+        users = [user | state.users]
+
+        if is_admin?(admin, state.admins) && Pigeon.Rooms.Join.can_join(state.type, users) do
             {:reply, "Ha sido agregado a la sala", %{state | users: users}}
         else
             {:reply, "No ha sido agregado a la sala", state}
@@ -85,5 +101,15 @@ defmodule Pigeon.Rooms.Room do
         
         delete_message(self(), message_id)
         {:noreply, state}
+    end
+
+    defp is_admin?(who, admins), do: Enum.member?(admins, who)
+
+    defp as_admin(user, state, action) do
+        if is_admin?(user, state.users) do
+            action.()
+        else
+            {:reply, {:error, :forbidden}, state}
+        end
     end
   end
