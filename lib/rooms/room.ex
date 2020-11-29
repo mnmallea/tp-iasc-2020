@@ -61,9 +61,10 @@ defmodule Pigeon.Rooms.Room do
 
     @impl true
     def handle_call({:get_user_info, user}, _from, state) do
-        case state.users[user] do
-        nil -> {:reply, {:error, :not_found}, state}
-        user_data -> {:reply, {:ok, user_data}, state}
+        cond do
+            Enum.member?(state.admins, user) -> {:reply, {:ok, "admin"}, state}
+            Enum.member?(state.users, user) -> {:reply, {:ok, "user"}, state}
+            true -> {:reply, {:error, :not_found}, state}
         end
     end
 
