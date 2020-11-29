@@ -61,13 +61,12 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_cast({:send_message, {room, text, ttl}}, state) do
-    Pigeon.Rooms.Room.create_message(room, text, ttl)
+  def handle_cast({:send_message, {room, text, ttl, me}}, state) do
+    Pigeon.Rooms.Room.create_message(room, text, ttl, me)
     {:noreply, state}
   end
 
   def broadcast_message(user, message) do
-    IO.puts(inspect(user))
     GenServer.cast(user, {:broadcast_message, message})
   end
 end

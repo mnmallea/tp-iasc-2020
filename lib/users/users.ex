@@ -8,7 +8,6 @@ defmodule Pigeon.User do
   def login(user_name) do
     {:ok, pid} = start_link(user_name)
     message = GenServer.call(pid, {:login, user_name})
-    IO.puts(message)
     pid
   end
 
@@ -61,7 +60,7 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
-    GenServer.cast({state, :server@localhost}, {:send_message, {room, text, ttl}})
+    GenServer.cast({state, :server@localhost}, {:send_message, {room, text, ttl, state}})
     {:noreply, state}
   end
 
