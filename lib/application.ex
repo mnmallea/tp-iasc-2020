@@ -15,6 +15,8 @@ defmodule Pigeon.Application do
       ]
     ]
 
+    port = System.get_env("PORT")
+
     children = [
       {Cluster.Supervisor, [topologies, [name: Pigeon.ClusterSupervisor]]},
       Pigeon.UserRegistry.Supervisor,
@@ -24,7 +26,7 @@ defmodule Pigeon.Application do
         plug: Pigeon.Router,
         options: [
           dispatch: dispatch(),
-          port: System.get_env("PORT") || 4000
+          port: (port && String.to_integer(port)) || 4000
         ]
       )
     ]

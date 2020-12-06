@@ -3,7 +3,7 @@ defmodule Pigeon.Rooms.Room do
   alias Pigeon.Message
 
   def start_link(init_args) do
-    IO.puts "Starting room with args #{inspect init_args}"
+    IO.puts("Starting room with args #{inspect(init_args)}")
     state = build_state(init_args)
     IO.puts(inspect(state))
     {_, name, _} = init_args
@@ -23,7 +23,7 @@ defmodule Pigeon.Rooms.Room do
 
   @impl true
   def init(state) do
-    IO.puts "INIT room"
+    IO.puts("INIT room")
     {:ok, state}
   end
 
