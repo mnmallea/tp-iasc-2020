@@ -2,7 +2,13 @@ defmodule Pigeon.UserRegistry do
   use GenServer
 
   def start_link(user) do
-    GenServer.start_link(__MODULE__, [], name: user)
+    {:ok, pid} = GenServer.start_link(__MODULE__, [], name: user)
+  end
+
+  def create_user(user) do
+    {:ok, pid} = Swarm.register_name(user, Pigeon.UserRegistry.Supervisor, :register, [user])
+    Swarm.join(:users, pid)
+    {:ok, pid}
   end
 
   @impl true
@@ -36,8 +42,7 @@ defmodule Pigeon.UserRegistry do
   @impl true
   def handle_cast({:broadcast_message, message}, state) do
     for {pid, _} <- state do
-      IO.puts(inspect(pid))
-      GenServer.cast(pid, {:print_message, message})
+      GenServer.cast({:via, :swarm, pid}, {:print_message, message})
     end
 
     {:noreply, state}
@@ -68,6 +73,6 @@ defmodule Pigeon.UserRegistry do
   end
 
   def broadcast_message(user, message) do
-    GenServer.cast(user, {:broadcast_message, message})
+    GenServer.cast({:via, :swarm, user}, {:broadcast_message, message})
   end
 end

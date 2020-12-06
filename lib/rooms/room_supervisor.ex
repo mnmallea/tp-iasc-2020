@@ -11,6 +11,5 @@ defmodule Pigeon.Room.Supervisor do
   
     def register(state) do
       {:ok, pid} = DynamicSupervisor.start_child(__MODULE__, {Pigeon.Rooms.Room, state})
-      {:ok, pid}
     end
   end

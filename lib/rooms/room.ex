@@ -12,19 +12,21 @@ defmodule Pigeon.Rooms.Room do
     end
 
     def create_room(user, name, type) do
-        Pigeon.Room.Supervisor.register({user, name, type})
+        {:ok, pid} = Swarm.register_name(name, Pigeon.Room.Supervisor, :register, [{user, name, type}])
+        Swarm.join(:rooms, pid)
+        {:ok, pid}
     end
 
     def create_message(pid, text, ttl, sender) do
-        GenServer.call(pid, {:create_message, %{text: text, ttl: ttl, sender: sender}})
+        GenServer.call({:via, :swarm, pid}, {:create_message, %{text: text, ttl: ttl, sender: sender}})
     end
 
     def list_messages(pid) do
-        GenServer.call(pid, {:list_messages})
+        GenServer.call({:via, :swarm, pid}, {:list_messages})
     end
 
     def update_message(pid, message_id, text, sender) do
-        GenServer.call(pid, {:update_message, message_id, %{text: text, sender: sender}})
+        GenServer.call({:via, :swarm, pid}, {:update_message, message_id, %{text: text, sender: sender}})
     end
 
     def delete_message(pid, message_id) do
@@ -32,27 +34,27 @@ defmodule Pigeon.Rooms.Room do
     end
 
     def delete_message(pid, message_id, sender) do
-        GenServer.call(pid, {:delete_message, {message_id, sender}})
+        GenServer.call({:via, :swarm, pid}, {:delete_message, {message_id, sender}})
     end
 
     def add_user(pid, admin, user) do
-        GenServer.call(pid, {:add_user, admin, user})
+        GenServer.call({:via, :swarm, pid}, {:add_user, admin, user})
     end
 
     def join_room(pid, user) do
-        GenServer.call(pid, {:join_room, user})
+        GenServer.call({:via, :swarm, pid}, {:join_room, user})
     end
 
     def remove_user(pid, {user, sender}) do
-    GenServer.call(pid, {:remove_user, user, sender})
+    GenServer.call({:via, :swarm, pid}, {:remove_user, user, sender})
     end
 
     def get_user_info(pid, user) do
-    GenServer.call(pid, {:get_user_info, user})
+    GenServer.call({:via, :swarm, pid}, {:get_user_info, user})
     end
 
     def upgrade_user(pid, {user, sender}) do
-    GenServer.call(pid, {:upgrade_user, user, sender})
+    GenServer.call({:via, :swarm, pid}, {:upgrade_user, user, sender})
     end
 
     @impl true

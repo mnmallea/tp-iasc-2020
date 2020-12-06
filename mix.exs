@@ -23,7 +23,8 @@ defmodule Pigeon.MixProject do
   defp deps do
     [
       {:uuid, "~> 1.1"},
-      {:libcluster, "~> 3.2.1"}
+      {:libcluster, "~> 3.2.1"},
+      {:swarm, "~> 3.4"}
     ]
   end
 end

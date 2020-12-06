@@ -26,8 +26,8 @@ En una consola
 iex --sname server@localhost -S mix
 ```
 ```bash
-{:ok, pid1} = Pigeon.UserRegistry.start_link(User1)
-{:ok, pid2} = Pigeon.UserRegistry.start_link(User2)
+Pigeon.UserRegistry.create_user(User1)
+Pigeon.UserRegistry.create_user(User2)
 ```
 
 En otra consola
@@ -35,7 +35,7 @@ En otra consola
 iex --sname nodo1@localhost -S mix
 ```
 ```bash
-pid = Pigeon.User.login(User1)
+  pid = Pigeon.User.login(User1)
 Pigeon.User.create_group_room(pid, IASC)
 #Pigeon.User.create_chat(pid, IASC) -- sala individual
 #Pigeon.User.create_secret_room(pid, IASC) -- sala individual secreta 
