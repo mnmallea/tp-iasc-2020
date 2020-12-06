@@ -6,22 +6,39 @@ defmodule Pigeon.Application do
   use Application
 
   def start(_type, _args) do
-    topologies =  [
+    topologies = [
       topology: [
         strategy: Elixir.Cluster.Strategy.Epmd,
         config: [
-          hosts: [:"server1@localhost", :"server2@localhost", :"server2@localhost"]
+          hosts: [:server1@localhost]
         ]
       ]
     ]
-    
-    
+
     children = [
       {Cluster.Supervisor, [topologies, [name: Pigeon.ClusterSupervisor]]},
       Pigeon.UserRegistry.Supervisor,
-      Pigeon.Room.Supervisor
+      Pigeon.Room.Supervisor,
+      Plug.Cowboy.child_spec(
+        scheme: :http,
+        plug: Pigeon.Router,
+        options: [
+          dispatch: dispatch(),
+          port: System.get_env("PORT") || 4000
+        ]
+      )
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: PigeonAppSupervirsor)
+  end
+
+  defp dispatch do
+    [
+      {:_,
+       [
+         {"/ws/[...]", Pigeon.SocketHandler, []},
+         {:_, Plug.Cowboy.Handler, {Pigeon.Router, []}}
+       ]}
+    ]
   end
 end

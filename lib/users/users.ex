@@ -1,12 +1,12 @@
 defmodule Pigeon.User do
   use GenServer
 
-  def start_link(name) do
-    GenServer.start_link(__MODULE__, name)
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state)
   end
 
-  def login(user_name) do
-    {:ok, pid} = start_link(user_name)
+  def login(user_name, socket_pid) do
+    {:ok, pid} = start_link(%{name: user_name, socket_pid: socket_pid})
     message = GenServer.call(pid, {:login, user_name})
     pid
   end
@@ -17,62 +17,69 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:login, user}, _from, _) do
+  def handle_call({:login, user}, _from, state) do
     GenServer.call({user, :server1@localhost}, {:add_to_registry, {self(), Node.self()}})
-    {:reply, "Login satisfactorio", user}
+    {:reply, "Login satisfactorio", state}
   end
 
   @impl true
   def handle_call({:join_room, name}, _from, state) do
-    result = GenServer.call({state, :server1@localhost}, {:join_group_room, {state, name}})
+    result =
+      GenServer.call({state.name, :server1@localhost}, {:join_group_room, {state.name, name}})
+
     {:reply, result, state}
   end
 
   @impl true
   def handle_call({:add_user, user, name}, _from, state) do
-    result = GenServer.call({state, :server1@localhost}, {:add_user, {state, user, name}})
-    {:reply, result, state}
-  end
+    result =
+      GenServer.call({state.name, :server1@localhost}, {:add_user, {state.name, user, name}})
 
-  @impl true
-  def handle_call({:add_user, user, name}, _from, state) do
-    result = GenServer.call({state, :server1@localhost}, {:add_user, {state, user, name}})
     {:reply, result, state}
   end
 
   @impl true
   def handle_cast({:show_connections}, state) do
-    GenServer.cast({state, :server1@localhost}, {:show_connections, {state, Node.self()}})
+    GenServer.cast(
+      {state.name, :server1@localhost},
+      {:show_connections, {state.name, Node.self()}}
+    )
+
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_group_room, name}, state) do
-    GenServer.cast({state, :server1@localhost}, {:create_group_room, {state, name}})
+    GenServer.cast({state.name, :server1@localhost}, {:create_group_room, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_chat, name}, state) do
-    GenServer.cast({state, :server1@localhost}, {:create_chat, {state, name}})
+    GenServer.cast({state.name, :server1@localhost}, {:create_chat, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_secret_room, name}, state) do
-    GenServer.cast({state, :server1@localhost}, {:create_secret_room, {state, name}})
+    GenServer.cast({state.name, :server1@localhost}, {:create_secret_room, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
-    GenServer.cast({state, :server1@localhost}, {:send_message, {room, text, ttl, state}})
+    GenServer.cast(
+      {state.name, :server1@localhost},
+      {:send_message, {room, text, ttl, state.name}}
+    )
+
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:print_message, message}, state) do
     IO.puts(inspect(message))
+    Process.send(state.socket_pid, message, [])
     {:noreply, state}
   end
 
@@ -81,30 +88,33 @@ defmodule Pigeon.User do
   end
 
   def create_group_room(pid, name) do
-    GenServer.cast(pid, {:create_group_room, name})
+    GenServer.cast(pid, {:create_group_room, as_atom(name)})
   end
 
   def create_chat(pid, name) do
-    GenServer.cast(pid, {:create_chat, name})
+    GenServer.cast(pid, {:create_chat, as_atom(name)})
   end
 
   def create_secret_room(pid, name) do
-    GenServer.cast(pid, {:create_secret_room, name})
+    GenServer.cast(pid, {:create_secret_room, as_atom(name)})
   end
 
   def join_room(pid, name) do
-    GenServer.call(pid, {:join_room, name})
+    GenServer.call(pid, {:join_room, as_atom(name)})
   end
 
   def add_user(pid, user, name) do
-    GenServer.call(pid, {:add_user, user, name})
+    GenServer.call(pid, {:add_user, as_atom(user), as_atom(name)})
   end
 
   def send_message_to_room(pid, room, text, ttl) do
-    GenServer.cast(pid, {:send_message_to_room, {room, text, ttl}})
+    GenServer.cast(pid, {:send_message_to_room, {as_atom(room), text, ttl}})
   end
 
   def send_message_to_room(pid, room, text) do
-    GenServer.cast(pid, {:send_message_to_room, {room, text, -1}})
+    GenServer.cast(pid, {:send_message_to_room, {as_atom(room), text, -1}})
   end
+
+  defp as_atom(atom) when is_atom(atom), do: atom
+  defp as_atom(string), do: String.to_atom(string)
 end
