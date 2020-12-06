@@ -5,10 +5,6 @@ defmodule Pigeon.UserRegistry do
     GenServer.start_link(__MODULE__, [], name: user)
   end
 
-  # def child_spec({user}) do
-  #   %{id: name, start: {__MODULE__, :start_link, [user]}, type: :worker}
-  # end
-
   @impl true
   def init(state) do
     {:ok, state}
@@ -38,8 +34,9 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_cast({:broadcast_message, message}, state) do 
+  def handle_cast({:broadcast_message, message}, state) do
     for {pid, _} <- state do
+      IO.puts(inspect(pid))
       GenServer.cast(pid, {:print_message, message})
     end
 

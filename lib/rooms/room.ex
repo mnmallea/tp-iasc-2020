@@ -2,17 +2,18 @@ defmodule Pigeon.Rooms.Room do
     use GenServer
     alias Pigeon.Message
 
+    def start_link({user, name, type}) do
+        {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [user], messages: [], type: type, admins: [user]}, name: name)
+    end
+
     @impl true
     def init(state) do
         {:ok, state}
     end
 
     def create_room(user, name, type) do
-        {:ok, pid} = GenServer.start_link(__MODULE__, %{users: [], messages: [], type: type, admins: [user]}, name: name)
-        
-        Pigeon.Rooms.Room.join_room(pid, user)
-        pid
-      end
+        Pigeon.Room.Supervisor.register({user, name, type})
+    end
 
     def create_message(pid, text, ttl, sender) do
         GenServer.call(pid, {:create_message, %{text: text, ttl: ttl, sender: sender}})
@@ -24,6 +25,10 @@ defmodule Pigeon.Rooms.Room do
 
     def update_message(pid, message_id, text, sender) do
         GenServer.call(pid, {:update_message, message_id, %{text: text, sender: sender}})
+    end
+
+    def delete_message(pid, message_id) do
+        GenServer.cast(pid, {:delete_message, message_id})
     end
 
     def delete_message(pid, message_id, sender) do

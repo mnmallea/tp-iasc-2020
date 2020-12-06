@@ -7,7 +7,8 @@ defmodule Pigeon.Application do
 
   def start(_type, _args) do
     children = [
-      Pigeon.UserRegistry.Supervisor
+      Pigeon.UserRegistry.Supervisor,
+      Pigeon.Room.Supervisor
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: PigeonAppSupervirsor)

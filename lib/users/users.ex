@@ -36,7 +36,7 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_call({:add_user, user, name}, _from, state) do
-    result = GenServer.call({state, :server@localhost}, {:add_user, {state, user, name}})
+    result = GenServer.call({state, :server1@localhost}, {:add_user, {state, user, name}})
     {:reply, result, state}
   end
 
@@ -66,7 +66,7 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
-    GenServer.cast({state, :server@localhost}, {:send_message, {room, text, ttl, state}})
+    GenServer.cast({state, :server1@localhost}, {:send_message, {room, text, ttl, state}})
     {:noreply, state}
   end
 
