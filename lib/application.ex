@@ -6,9 +6,10 @@ defmodule Pigeon.Application do
   use Application
 
   def start(_type, _args) do
-    children = []
+    children = [
+      Pigeon.UserRegistry.Supervisor
+    ]
 
-    opts = [strategy: :one_for_one, name: Pigeon.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children, strategy: :one_for_one, name: PigeonAppSupervirsor)
   end
 end

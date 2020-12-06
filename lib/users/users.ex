@@ -1,8 +1,8 @@
 defmodule Pigeon.User do
-  use GenServer, Node
+  use GenServer
 
   def start_link(name) do
-    GenServer.start_link(__MODULE__, name, name: name)
+    GenServer.start_link(__MODULE__, name)
   end
 
   def login(user_name) do
@@ -17,14 +17,20 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:login, user}, _from, state) do
-    GenServer.call({state, :server@localhost}, {:add_to_registry, {state, Node.self()}})
+  def handle_call({:login, user}, _from, _) do
+    GenServer.call({user, :server1@localhost}, {:add_to_registry, {self(), Node.self()}})
     {:reply, "Login satisfactorio", user}
   end
 
   @impl true
   def handle_call({:join_room, name}, _from, state) do
-    result = GenServer.call({state, :server@localhost}, {:join_group_room, {state, name}})
+    result = GenServer.call({state, :server1@localhost}, {:join_group_room, {state, name}})
+    {:reply, result, state}
+  end
+
+  @impl true
+  def handle_call({:add_user, user, name}, _from, state) do
+    result = GenServer.call({state, :server1@localhost}, {:add_user, {state, user, name}})
     {:reply, result, state}
   end
 
@@ -36,25 +42,25 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:show_connections}, state) do
-    GenServer.cast({state, :server@localhost}, {:show_connections, {state, Node.self()}})
+    GenServer.cast({state, :server1@localhost}, {:show_connections, {state, Node.self()}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_group_room, name}, state) do
-    GenServer.cast({state, :server@localhost}, {:create_group_room, {state, name}})
+    GenServer.cast({state, :server1@localhost}, {:create_group_room, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_chat, name}, state) do
-    GenServer.cast({state, :server@localhost}, {:create_chat, {state, name}})
+    GenServer.cast({state, :server1@localhost}, {:create_chat, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_secret_room, name}, state) do
-    GenServer.cast({state, :server@localhost}, {:create_secret_room, {state, name}})
+    GenServer.cast({state, :server1@localhost}, {:create_secret_room, {state, name}})
     {:noreply, state}
   end
 
@@ -66,7 +72,7 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:print_message, message}, state) do
-    IO.inspect(message)
+    IO.puts(inspect(message))
     {:noreply, state}
   end
 

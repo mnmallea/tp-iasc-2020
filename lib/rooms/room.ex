@@ -26,10 +26,6 @@ defmodule Pigeon.Rooms.Room do
         GenServer.call(pid, {:update_message, message_id, %{text: text, sender: sender}})
     end
 
-    def delete_message(pid, message_id) do
-        GenServer.cast(pid, {:delete_message, message_id})
-    end
-
     def delete_message(pid, message_id, sender) do
         GenServer.call(pid, {:delete_message, {message_id, sender}})
     end
