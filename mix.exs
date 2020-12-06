@@ -22,7 +22,8 @@ defmodule Pigeon.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:libcluster, "~> 3.2.1"}
     ]
   end
 end

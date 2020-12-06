@@ -6,7 +6,18 @@ defmodule Pigeon.Application do
   use Application
 
   def start(_type, _args) do
+    topologies =  [
+      topology: [
+        strategy: Elixir.Cluster.Strategy.Epmd,
+        config: [
+          hosts: [:"server1@localhost", :"server2@localhost", :"server2@localhost"]
+        ]
+      ]
+    ]
+    
+    
     children = [
+      {Cluster.Supervisor, [topologies, [name: Pigeon.ClusterSupervisor]]},
       Pigeon.UserRegistry.Supervisor,
       Pigeon.Room.Supervisor
     ]
