@@ -21,6 +21,11 @@ ws.on('open', () => {
     console.error(inspect(e));
     process.exit(1);
   });
+
+  ws.on('close', () => {
+    console.log('Clossed connection');
+    process.exit();
+  });
   
   const rl = readline.createInterface({
     input: process.stdin,
