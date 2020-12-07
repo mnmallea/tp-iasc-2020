@@ -1,5 +1,6 @@
 defmodule Pigeon.User do
   use GenServer
+  import Pigeon.SwarmUtils
 
   def start_link(state) do
     GenServer.start_link(__MODULE__, state)
@@ -18,64 +19,60 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_call({:login, user}, _from, state) do
-    GenServer.call(user, {:add_to_registry, {self(), Node.self()}})
+    GenServer.call({:via, :swarm, user}, {:add_to_registry, {self(), Node.self()}})
     {:reply, "Login satisfactorio", state}
   end
 
   @impl true
   def handle_call({:join_room, name}, _from, state) do
-    result = GenServer.call(state.name, {:join_group_room, {state.name, name}})
-
+    result = GenServer.call({:via, :swarm, state}, {:join_group_room, {state, name}})
     {:reply, result, state}
   end
 
   @impl true
   def handle_call({:add_user, user, name}, _from, state) do
-    result = GenServer.call(state.name, {:add_user, {state.name, user, name}})
+    result = GenServer.call({:via, :swarm, state}, {:add_user, {state, user, name}})
+    {:reply, result, state}
+  end
 
+  @impl true
+  def handle_call({:add_user, user, name}, _from, state) do
+    result = GenServer.call({:via, :swarm, state}, {:add_user, {state, user, name}})
     {:reply, result, state}
   end
 
   @impl true
   def handle_cast({:show_connections}, state) do
-    GenServer.cast(
-      state.name,
-      {:show_connections, {state.name, Node.self()}}
-    )
-
+    GenServer.cast({:via, :swarm, state}, {:show_connections, {state, Node.self()}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_group_room, name}, state) do
-    GenServer.cast(state.name, {:create_group_room, {state.name, name}})
+    GenServer.cast({:via, :swarm, state}, {:create_group_room, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_chat, name}, state) do
-    GenServer.cast(state.name, {:create_chat, {state.name, name}})
+    GenServer.cast({:via, :swarm, state}, {:create_chat, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_secret_room, name}, state) do
-    GenServer.cast(state.name, {:create_secret_room, {state.name, name}})
+    GenServer.cast({:via, :swarm, state}, {:create_secret_room, {state, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
-    GenServer.cast(
-      state.name,
-      {:send_message, {room, text, ttl, state.name}}
-    )
-
+    GenServer.cast({:via, :swarm, state}, {:send_message, {room, text, ttl, state}})
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:print_message, message}, state) do
+  def handle_cast({:on_message, message}, state) do
     IO.puts(inspect(message))
     Process.send(state.socket_pid, message, [])
     {:noreply, state}
