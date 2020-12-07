@@ -8,10 +8,7 @@ defmodule Pigeon.Application do
   def start(_type, _args) do
     topologies = [
       topology: [
-        strategy: Elixir.Cluster.Strategy.Epmd,
-        config: [
-          hosts: [:server1@localhost]
-        ]
+        strategy: Elixir.Cluster.Strategy.Gossip
       ]
     ]
 

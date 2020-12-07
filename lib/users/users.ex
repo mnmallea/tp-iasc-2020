@@ -18,22 +18,20 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_call({:login, user}, _from, state) do
-    GenServer.call({user, :server1@localhost}, {:add_to_registry, {self(), Node.self()}})
+    GenServer.call(user, {:add_to_registry, {self(), Node.self()}})
     {:reply, "Login satisfactorio", state}
   end
 
   @impl true
   def handle_call({:join_room, name}, _from, state) do
-    result =
-      GenServer.call({state.name, :server1@localhost}, {:join_group_room, {state.name, name}})
+    result = GenServer.call(state.name, {:join_group_room, {state.name, name}})
 
     {:reply, result, state}
   end
 
   @impl true
   def handle_call({:add_user, user, name}, _from, state) do
-    result =
-      GenServer.call({state.name, :server1@localhost}, {:add_user, {state.name, user, name}})
+    result = GenServer.call(state.name, {:add_user, {state.name, user, name}})
 
     {:reply, result, state}
   end
@@ -41,7 +39,7 @@ defmodule Pigeon.User do
   @impl true
   def handle_cast({:show_connections}, state) do
     GenServer.cast(
-      {state.name, :server1@localhost},
+      state.name,
       {:show_connections, {state.name, Node.self()}}
     )
 
@@ -50,26 +48,26 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_cast({:create_group_room, name}, state) do
-    GenServer.cast({state.name, :server1@localhost}, {:create_group_room, {state.name, name}})
+    GenServer.cast(state.name, {:create_group_room, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_chat, name}, state) do
-    GenServer.cast({state.name, :server1@localhost}, {:create_chat, {state.name, name}})
+    GenServer.cast(state.name, {:create_chat, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_secret_room, name}, state) do
-    GenServer.cast({state.name, :server1@localhost}, {:create_secret_room, {state.name, name}})
+    GenServer.cast(state.name, {:create_secret_room, {state.name, name}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:send_message_to_room, {room, text, ttl}}, state) do
     GenServer.cast(
-      {state.name, :server1@localhost},
+      state.name,
       {:send_message, {room, text, ttl, state.name}}
     )
 
@@ -116,5 +114,5 @@ defmodule Pigeon.User do
   end
 
   defp as_atom(atom) when is_atom(atom), do: atom
-  defp as_atom(string), do: String.to_atom(string)
+  defp as_atom(string) when is_bitstring(string), do: String.to_atom(string)
 end
