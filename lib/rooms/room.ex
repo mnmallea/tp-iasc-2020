@@ -7,32 +7,32 @@ defmodule Pigeon.Rooms.Room do
     state = build_state(init_args)
     IO.puts(inspect(state))
     {_, name, _} = init_args
-    res = GenServer.start_link(__MODULE__, state, name: name)
-    IO.puts(inspect(res))
-    res
+    {:ok, pid} = GenServer.start_link(__MODULE__, state, name: name)
+    GenServer.cast(pid, {:start_backups})
+    {:ok, pid}
   end
 
   def create_room(user, name, type) do
     {:ok, pid} =
       Swarm.register_name(name, Pigeon.Room.Supervisor, :register, [{user, name, type}])
-
-    Swarm.join(:rooms, pid)
+      Swarm.join(:rooms, pid)
     {:ok, pid}
   end
 
   @impl true
   def init(state) do
     IO.puts("INIT room")
+
     {:ok, state}
   end
 
-  defp build_state({{owner}, _name, :group}) do
-    %{users: [owner], messages: [], type: :group, admins: [owner]}
+  defp build_state({owner, name, :group}) do
+    %{users: [owner], messages: [], type: :group, admins: [owner], name: name }
   end
 
-  defp build_state({{user_1, user_2}, _name, type}) do
+  defp build_state({{user_1, user_2}, name, type}) do
     IO.puts("Build state")
-    %{users: [user_1, user_2], messages: [], type: type, admins: []}
+    %{users: [user_1, user_2], messages: [], type: type, admins: [], name: name }
   end
 
   def create_message(pid, text, ttl, sender) do
@@ -82,6 +82,35 @@ defmodule Pigeon.Rooms.Room do
   end
 
   @impl true
+  def handle_cast({:start_backups}, state) do
+    IO.puts("Start Backup")
+
+    names = ["#{state.name}_A", "#{state.name}_B"]
+
+    # require IEx; IEx.pry
+
+    backup = names |> Enum.find(fn back -> Swarm.whereis_name(String.to_atom(back)) != :undefined end)
+    
+    IO.puts(inspect(backup))
+
+    to_return = if backup == nil do
+      for backup_name <- names do
+        backup_name = String.to_atom(backup_name)
+        {:ok, pid} = Swarm.register_name(backup_name, Pigeon.RoomState.Supervisor, :register, [{backup_name, state}])
+        IO.puts(inspect(pid))
+        Swarm.join(:backups, pid)
+      end
+      state
+    else 
+      Pigeon.RoomState.get_state(String.to_atom(backup))
+    end
+
+    IO.puts(inspect(to_return))
+
+    {:noreply, to_return}
+  end
+
+  @impl true
   def handle_call({:list_messages}, _from, state) do
     {:reply, state.messages, state}
   end
@@ -95,15 +124,28 @@ defmodule Pigeon.Rooms.Room do
     end
   end
 
+  defp update_backup(to_reply) do
+    {_, _, state} = to_reply
+    names = [:"#{state.name}_A", :"#{state.name}_B"]
+    
+    for backup <- names do
+      Pigeon.RoomState.set_state(backup, state)  
+    end
+    
+    to_reply
+  end
+
   @impl true
   def handle_call({:join_room, user}, _from, state) do
     users = [user | state.users]
 
-    if Pigeon.Rooms.Join.can_join(state.type, users) do
+    to_reply = if Pigeon.Rooms.Join.can_join(state.type, users) do
       {:reply, "Ha sido agregado a la sala", %{state | users: users}}
     else
       {:reply, "No ha sido agregado a la sala", state}
     end
+
+    update_backup(to_reply)
   end
 
   @impl true
@@ -128,7 +170,8 @@ defmodule Pigeon.Rooms.Room do
       Pigeon.UserRegistry.broadcast_message(user, text)
     end
 
-    {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}
+    to_reply = {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}
+    update_backup(to_reply)
   end
 
   @impl true
@@ -142,8 +185,8 @@ defmodule Pigeon.Rooms.Room do
           else: message
       end)
 
-    {:noreply, %{state | messages: new_messages}}
-    {:reply, {:ok}, %{state | messages: new_messages}}
+    to_reply = {:reply, {:ok}, %{state | messages: new_messages}}
+    update_backup(to_reply)
   end
 
   @impl true
@@ -151,11 +194,13 @@ defmodule Pigeon.Rooms.Room do
     index = Enum.find_index(state.messages, fn message -> message.id == message_id end)
     message = Enum.at(state.messages, index)
 
-    case message do
+    to_reply = case message do
       %Message{sender_pid: ^sender} -> delete_message_by_index(state, index)
       nil -> {:reply, {:error, :not_found}, state}
       _ -> as_admin(sender, state, fn -> delete_message_by_index(state, index) end)
     end
+
+    update_backup(to_reply)
   end
 
   @impl true
@@ -165,7 +210,8 @@ defmodule Pigeon.Rooms.Room do
 
       IO.puts(inspect(newAdmins))
 
-      {:reply, {:ok}, %{state | admins: newAdmins}}
+      to_reply = {:reply, {:ok}, %{state | admins: newAdmins}}
+      update_backup(to_reply)
     end)
   end
 
@@ -177,7 +223,8 @@ defmodule Pigeon.Rooms.Room do
 
       IO.puts(inspect(newUsers))
       IO.puts(inspect(newAdmins))
-      {:reply, {:ok}, %{state | users: newUsers, admins: newAdmins}}
+      to_reply = {:reply, {:ok}, %{state | users: newUsers, admins: newAdmins}}
+      update_backup(to_reply)
     end)
   end
 

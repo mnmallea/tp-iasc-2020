@@ -8,7 +8,10 @@ defmodule Pigeon.Application do
   def start(_type, _args) do
     topologies = [
       topology: [
-        strategy: Elixir.Cluster.Strategy.Gossip
+        strategy: Elixir.Cluster.Strategy.Epmd,
+        config: [
+          hosts: [:"server1@localhost"]
+        ]
       ]
     ]
 
@@ -25,7 +28,8 @@ defmodule Pigeon.Application do
           dispatch: dispatch(),
           port: (port && String.to_integer(port)) || 4000
         ]
-      )
+      ),
+      Pigeon.RoomState.Supervisor
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: PigeonAppSupervirsor)
