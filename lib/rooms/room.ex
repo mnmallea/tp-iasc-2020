@@ -170,7 +170,7 @@ defmodule Pigeon.Rooms.Room do
     Pigeon.Rooms.MessageCleaner.schedule_clean(state.type, self(), new_message.id, ttl)
 
     for user <- state.users do
-      Pigeon.UserRegistry.broadcast_message(user, text)
+      Pigeon.UserRegistry.broadcast_message(user, new_message, state.name)
     end
 
     to_reply = {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}

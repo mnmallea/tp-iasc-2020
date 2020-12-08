@@ -12,13 +12,13 @@ defmodule Pigeon.SocketHandler do
     {:ok, Map.put(state, :user_pid, pid)}
   end
 
-  # Handle other messages from the browser - don't reply
+  # Messages from browser
   def websocket_handle({:text, message}, state) do
     IO.puts("WS handle #{inspect(message)}")
     [command | args] = String.split(message, " ")
-    apply(Pigeon.User, String.to_atom(command), [state.user_pid | args])
+    res = apply(Pigeon.User, String.to_atom(command), [state.user_pid | args])
     IO.puts("Done")
-    {:ok, state}
+    {:reply, {:text, inspect(res)}, state}
   end
 
   def websocket_handle(message, state) do
@@ -29,6 +29,6 @@ defmodule Pigeon.SocketHandler do
   # Format and forward elixir messages to client
   def websocket_info(message, state) do
     message |> inspect |> IO.puts()
-    {:reply, {:text, message}, state}
+    {:reply, {:text, inspect(message)}, state}
   end
 end

@@ -14,7 +14,8 @@ const ws = new WebSocket(`ws://${baseUrl}/ws/${name}`);
 
 ws.on('open', () => {
   ws.on('message', (data) => {
-    console.log(data);
+    console.log(`Recibi: ${data}`);
+    rl.prompt();
   });
   
   ws.on('error', (e) => {
@@ -34,6 +35,8 @@ ws.on('open', () => {
   
   rl.prompt();
   rl.on('line', (line) => {
+    line = line.trim();
+    if(!line) return rl.prompt();
     console.log(`Exec command ${line}`);
     ws.send(line);
     rl.prompt();

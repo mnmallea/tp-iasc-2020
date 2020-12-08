@@ -42,6 +42,12 @@ defmodule Pigeon.User do
   end
 
   @impl true
+  def handle_call({:list_messages, room} = message, _from, state) do
+    result = GenServer.call(via_swarm(state.name), message)
+    {:reply, result, state}
+  end
+
+  @impl true
   def handle_cast({:show_connections}, state) do
     GenServer.cast(via_swarm(state.name), {:show_connections, {state.name, Node.self()}})
     {:noreply, state}
@@ -72,9 +78,9 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_cast({:on_message, message}, state) do
+  def handle_cast({:on_message, message, room_name}, state) do
     IO.puts(inspect(message))
-    Process.send(state.socket_pid, message, [])
+    Process.send(state.socket_pid, {message, room_name}, [])
     {:noreply, state}
   end
 
@@ -108,6 +114,10 @@ defmodule Pigeon.User do
 
   def send_message_to_room(pid, room, text) do
     GenServer.cast(pid, {:send_message_to_room, {as_atom(room), text, -1}})
+  end
+
+  def list_messages(pid, room) do
+    GenServer.call(pid, {:list_messages, as_atom(room)})
   end
 
   defp as_atom(atom) when is_atom(atom), do: atom

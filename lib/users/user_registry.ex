@@ -1,5 +1,6 @@
 defmodule Pigeon.UserRegistry do
   use GenServer
+  alias Pigeon.Rooms.Room
 
   def start_link(user) do
     {:ok, pid} = GenServer.start_link(__MODULE__, [], name: user)
@@ -11,8 +12,8 @@ defmodule Pigeon.UserRegistry do
     {:ok, pid}
   end
 
-  def broadcast_message(user, message) do
-    GenServer.cast({:via, :swarm, user}, {:broadcast_message, message})
+  def broadcast_message(user, message, room_name) do
+    GenServer.cast({:via, :swarm, user}, {:broadcast_message, message, room_name})
   end
 
   @impl true
@@ -27,14 +28,19 @@ defmodule Pigeon.UserRegistry do
 
   @impl true
   def handle_call({:join_group_room, {me, room}}, _from, state) do
-    result = Pigeon.Rooms.Room.join_room(room, me)
+    result = Room.join_room(room, me)
     {:reply, result, state}
   end
 
   @impl true
   def handle_call({:add_user, {me, other, room}}, _from, state) do
-    result = Pigeon.Rooms.Room.add_user(room, me, other)
+    result = Room.add_user(room, me, other)
     {:reply, result, state}
+  end
+
+  @impl true
+  def handle_call({:list_messages, room}, _from, state) do
+    {:reply, Room.list_messages(room), state}
   end
 
   @impl true
@@ -44,11 +50,11 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_cast({:broadcast_message, message}, state) do
+  def handle_cast({:broadcast_message, message, room_name}, state) do
     IO.puts("[#{inspect(self)}:user_registry] Broadcasting message #{inspect(message)}")
 
     for {pid, _} <- state do
-      GenServer.cast(pid, {:on_message, message})
+      GenServer.cast(pid, {:on_message, message, room_name})
     end
 
     {:noreply, state}
