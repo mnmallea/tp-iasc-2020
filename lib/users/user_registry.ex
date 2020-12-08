@@ -45,7 +45,8 @@ defmodule Pigeon.UserRegistry do
 
   @impl true
   def handle_cast({:broadcast_message, message}, state) do
-    IO.puts("[#{inspect self}:user_registry] Broadcasting message #{inspect message}")
+    IO.puts("[#{inspect(self)}:user_registry] Broadcasting message #{inspect(message)}")
+
     for {pid, _} <- state do
       GenServer.cast(pid, {:on_message, message})
     end
