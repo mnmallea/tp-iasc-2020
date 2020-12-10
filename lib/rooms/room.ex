@@ -88,8 +88,7 @@ defmodule Pigeon.Rooms.Room do
 
     names = backups_names(state)
 
-    backup =
-      names |> Enum.find(fn back -> Swarm.whereis_name(back) != :undefined end)
+    backup = names |> Enum.find(fn back -> Swarm.whereis_name(back) != :undefined end)
 
     IO.puts(inspect(backup))
 
@@ -129,12 +128,20 @@ defmodule Pigeon.Rooms.Room do
     end
   end
 
-  defp update_backup(to_reply) do
-    {_, _, state} = to_reply
+  defp update_backup({:reply, res, state}) do
     for backup <- backups_names(state) do
       Pigeon.RoomState.set_state(backup, state)
     end
-    to_reply
+
+    {:reply, res, state}
+  end
+
+  defp update_backup({:noreply, state}) do
+    for backup <- backups_names(state) do
+      Pigeon.RoomState.set_state(backup, state)
+    end
+
+    {:noreply, state}
   end
 
   @impl true
@@ -155,11 +162,14 @@ defmodule Pigeon.Rooms.Room do
   def handle_call({:add_user, admin, user}, _from, state) do
     users = [user | state.users]
 
-    if is_admin?(admin, state.admins) && Pigeon.Rooms.Join.can_join(state.type, users) do
-      {:reply, "Ha sido agregado a la sala", %{state | users: users}}
-    else
-      {:reply, "No ha sido agregado a la sala", state}
-    end
+    to_reply =
+      if is_admin?(admin, state.admins) && Pigeon.Rooms.Join.can_join(state.type, users) do
+        {:reply, "Ha sido agregado a la sala", %{state | users: users}}
+      else
+        {:reply, "No ha sido agregado a la sala", state}
+      end
+
+    update_backup(to_reply)
   end
 
   @impl true
@@ -173,8 +183,7 @@ defmodule Pigeon.Rooms.Room do
       Pigeon.UserRegistry.broadcast_message(user, new_message, state.name)
     end
 
-    to_reply = {:reply, {:ok, new_message}, %{state | messages: [new_message | state.messages]}}
-    update_backup(to_reply)
+    update_backup({:noreply, state})
   end
 
   @impl true
@@ -188,8 +197,7 @@ defmodule Pigeon.Rooms.Room do
           else: message
       end)
 
-    to_reply = {:reply, {:ok}, %{state | messages: new_messages}}
-    update_backup(to_reply)
+    update_backup({:reply, {:ok}, %{state | messages: new_messages}})
   end
 
   @impl true
@@ -214,8 +222,7 @@ defmodule Pigeon.Rooms.Room do
 
       IO.puts(inspect(newAdmins))
 
-      to_reply = {:reply, {:ok}, %{state | admins: newAdmins}}
-      update_backup(to_reply)
+      update_backup({:reply, {:ok}, %{state | admins: newAdmins}})
     end)
   end
 
@@ -227,15 +234,15 @@ defmodule Pigeon.Rooms.Room do
 
       IO.puts(inspect(newUsers))
       IO.puts(inspect(newAdmins))
-      to_reply = {:reply, {:ok}, %{state | users: newUsers, admins: newAdmins}}
-      update_backup(to_reply)
+
+      update_backup({:reply, {:ok}, %{state | users: newUsers, admins: newAdmins}})
     end)
   end
 
   @impl true
   def handle_cast({:delete_message, message_id}, state) do
     new_messages = Enum.filter(state.messages, &(&1.id != message_id))
-    {:noreply, %{state | messages: new_messages}}
+    update_backup({:noreply, %{state | messages: new_messages}})
   end
 
   @impl true
@@ -243,7 +250,7 @@ defmodule Pigeon.Rooms.Room do
     IO.puts("Deleting #{message_id}")
 
     delete_message(self(), message_id)
-    {:noreply, state}
+    update_backup({:noreply, state})
   end
 
   defp is_admin?(who, admins), do: Enum.member?(admins, who)
@@ -262,7 +269,7 @@ defmodule Pigeon.Rooms.Room do
 
   defp backups_names(state) do
     [state.name]
-    |> Stream.cycle
+    |> Stream.cycle()
     |> Stream.zip(1..2)
     |> Enum.map(fn {name, index} -> :"backups:#{name}:#{index}" end)
   end

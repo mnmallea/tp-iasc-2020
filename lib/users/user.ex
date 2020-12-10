@@ -36,12 +36,6 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:add_user, user, name}, _from, state) do
-    result = GenServer.call(via_swarm(state.name), {:add_user, {state.name, user, name}})
-    {:reply, result, state}
-  end
-
-  @impl true
   def handle_call({:list_messages, room} = message, _from, state) do
     result = GenServer.call(via_swarm(state.name), message)
     {:reply, result, state}
@@ -84,6 +78,42 @@ defmodule Pigeon.User do
     {:noreply, state}
   end
 
+  @impl true
+  def handle_call({:edit_message, room, id, text}, state) do
+    GenServer.cast(via_swarm(state.name), {:update_message, {room, id, text, state.name}})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:delete_message, room, id}, state) do
+    {:reply, res, _} =
+      GenServer.call(via_swarm(state.name), {:delete_message, {room, id, state.name}})
+
+    {:reply, res, state}
+  end
+
+  @impl true
+  def handle_call({:remove_user, room, user}, state) do
+    {:reply, res, _} =
+      GenServer.call(via_swarm(state.name), {:remove_user, {room, user, state.me}})
+
+    {:reply, res, state}
+  end
+
+  @impl true
+  def handle_call({:get_user_info, room, user}, state) do
+    {:reply, res, _} = GenServer.call(via_swarm(state.name), {:get_user_info, {room, user}})
+    {:reply, res, state}
+  end
+
+  @impl true
+  def handle_call({:upgrade_user, room, user}, state) do
+    {:reply, res, _} =
+      GenServer.call(via_swarm(state.name), {:upgrade_user, {room, user, state.name}})
+
+    {:reply, res, state}
+  end
+
   def show_connections(pid) do
     GenServer.cast(pid, {:show_connections})
   end
@@ -118,6 +148,26 @@ defmodule Pigeon.User do
 
   def list_messages(pid, room) do
     GenServer.call(pid, {:list_messages, as_atom(room)})
+  end
+
+  def edit_message(pid, room, id, text) do
+    GenServer.call(pid, {:edit_message, as_atom(room), id, text})
+  end
+
+  def delete_message(pid, room, id) do
+    GenServer.call(pid, {:delete_message, as_atom(room), id})
+  end
+
+  def remove_user(pid, room, user) do
+    GenServer.call(pid, {:remove_user, as_atom(room), user})
+  end
+
+  def get_user_info(pid, room, user) do
+    GenServer.call(pid, {:get_user_info, as_atom(room), user})
+  end
+
+  def updgrade_user(pid, room.user) do
+    GenServer.call(pid, {:upgrade_user, as_atom(room), user})
   end
 
   defp as_atom(atom) when is_atom(atom), do: atom
