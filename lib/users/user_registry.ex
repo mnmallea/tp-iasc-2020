@@ -85,31 +85,31 @@ defmodule Pigeon.UserRegistry do
   end
 
   @impl true
-  def handle_call({:update_message, {room, id, text, me}}, state) do
+  def handle_call({:update_message, {room, id, text, me}}, _from, state) do
     {:reply, res, _} = Pigeon.Rooms.Room.update_message(room, id, text, me)
     {:reply, res, state}
   end
 
   @impl true
-  def handle_call({:delete_message, {room, id, me}}, state) do
+  def handle_call({:delete_message, {room, id, me}}, _from, state) do
     {:reply, res, _} = Pigeon.Rooms.Room.delete_message(room, id, me)
     {:reply, res, state}
   end
 
   @impl true
-  def handle_call({:remove_user, {room, user, me}}, state) do
+  def handle_call({:remove_user, {room, user, me}}, _from, state) do
     {:reply, res, _} = Pigeon.Rooms.Room.remove_user(room, {user, me})
     {:reply, res, state}
   end
 
   @impl true
-  def handle_call({:get_user_info, {room, user}}, state) do
+  def handle_call({:get_user_info, {room, user}}, _from, state) do
     {:reply, res, _} = Pigeon.Rooms.Room.get_user_info(room, user)
     {:reply, res, state}
   end
 
   @impl true
-  def handle_call({:upgrade_user, {room, user, me}}, state) do
+  def handle_call({:upgrade_user, {room, user, me}}, _from, state) do
     {:reply, res, _} = Pigeon.Rooms.Room.upgrade_user(room, {user, me})
     {:reply, res, state}
   end

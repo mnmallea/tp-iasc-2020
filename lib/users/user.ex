@@ -79,13 +79,13 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:edit_message, room, id, text}, state) do
+  def handle_call({:edit_message, room, id, text}, _from, state) do
     GenServer.cast(via_swarm(state.name), {:update_message, {room, id, text, state.name}})
     {:noreply, state}
   end
 
   @impl true
-  def handle_call({:delete_message, room, id}, state) do
+  def handle_call({:delete_message, room, id}, _from, state) do
     {:reply, res, _} =
       GenServer.call(via_swarm(state.name), {:delete_message, {room, id, state.name}})
 
@@ -93,7 +93,7 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:remove_user, room, user}, state) do
+  def handle_call({:remove_user, room, user}, _from, state) do
     {:reply, res, _} =
       GenServer.call(via_swarm(state.name), {:remove_user, {room, user, state.me}})
 
@@ -101,13 +101,13 @@ defmodule Pigeon.User do
   end
 
   @impl true
-  def handle_call({:get_user_info, room, user}, state) do
+  def handle_call({:get_user_info, room, user}, _from, state) do
     {:reply, res, _} = GenServer.call(via_swarm(state.name), {:get_user_info, {room, user}})
     {:reply, res, state}
   end
 
   @impl true
-  def handle_call({:upgrade_user, room, user}, state) do
+  def handle_call({:upgrade_user, room, user}, _from, state) do
     {:reply, res, _} =
       GenServer.call(via_swarm(state.name), {:upgrade_user, {room, user, state.name}})
 
@@ -166,7 +166,7 @@ defmodule Pigeon.User do
     GenServer.call(pid, {:get_user_info, as_atom(room), user})
   end
 
-  def updgrade_user(pid, room.user) do
+  def upgrade_user(pid, room, user) do
     GenServer.call(pid, {:upgrade_user, as_atom(room), user})
   end
 

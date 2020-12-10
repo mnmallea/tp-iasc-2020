@@ -10,6 +10,6 @@ defmodule Pigeon.RoomState.Supervisor do
   end
 
   def register(state) do
-    {:ok, pid} = DynamicSupervisor.start_child(__MODULE__, {Pigeon.RoomState, state})
+    {:ok, _pid} = DynamicSupervisor.start_child(__MODULE__, {Pigeon.RoomState, state})
   end
 end

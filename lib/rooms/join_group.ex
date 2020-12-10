@@ -1,5 +1,5 @@
 defmodule Pigeon.Rooms.Join do
-  def can_join(:group, users) do
+  def can_join(:group, _users) do
     true
   end
 
