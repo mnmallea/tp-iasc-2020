@@ -37,7 +37,7 @@ defmodule Pigeon.Rooms.Room do
   end
 
   def create_message(pid, text, ttl, sender) do
-    GenServer.cast(
+    GenServer.call(
       {:via, :swarm, pid},
       {:create_message, %{text: text, ttl: ttl, sender: sender}}
     )
@@ -137,8 +137,6 @@ defmodule Pigeon.Rooms.Room do
   end
 
   defp update_backup({:noreply, state}) do
-    IO.puts("HOLA ESTOY ACA")
-
     for backup <- backups_names(state) do
       Pigeon.RoomState.set_state(backup, state)
     end
@@ -175,7 +173,7 @@ defmodule Pigeon.Rooms.Room do
   end
 
   @impl true
-  def handle_cast({:create_message, %{text: text, ttl: ttl, sender: sender}}, state) do
+  def handle_call({:create_message, %{text: text, ttl: ttl, sender: sender}}, _from, state) do
     IO.puts("Creating message on room #{inspect(self())}")
     new_message = Message.build(text, sender)
 
@@ -185,7 +183,7 @@ defmodule Pigeon.Rooms.Room do
       Pigeon.UserRegistry.broadcast_message(user, new_message, state.name)
     end
 
-    update_backup({:noreply, %{state | messages: [new_message | state.messages]}})
+    update_backup({:noreply, state})
   end
 
   @impl true

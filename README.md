@@ -45,15 +45,15 @@ En otra consola
 ```bash
 iex --sname nodo2@localhost -S mix
 ```
-```bash
+```elixir
 pid = Pigeon.User.login(User2)
-Pigeon.User.join_room(pid, IASC)
+Pigeon.User.add_user(pid, IASC)
 ```
 
 Listo ya está todo conectado, ahora para mandar un mensaje:
 
 Consola 1 (nodo1)
-```bash
+```elixir
 Pigeon.User.send_message_to_room(pid, IASC, "Hola mundo!")
 ```
 
