@@ -86,16 +86,14 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_call({:delete_message, room, id}, _from, state) do
-    res =
-      GenServer.call(via_swarm(state.name), {:delete_message, {room, id, state.name}})
+    res = GenServer.call(via_swarm(state.name), {:delete_message, {room, id, state.name}})
 
     {:reply, res, state}
   end
 
   @impl true
   def handle_call({:remove_user, room, user}, _from, state) do
-    res =
-      GenServer.call(via_swarm(state.name), {:remove_user, {room, user, state.name}})
+    res = GenServer.call(via_swarm(state.name), {:remove_user, {room, user, state.name}})
 
     {:reply, res, state}
   end
@@ -108,8 +106,7 @@ defmodule Pigeon.User do
 
   @impl true
   def handle_call({:upgrade_user, room, user}, _from, state) do
-    res =
-      GenServer.call(via_swarm(state.name), {:upgrade_user, {room, user, state.name}})
+    res = GenServer.call(via_swarm(state.name), {:upgrade_user, {room, user, state.name}})
 
     {:reply, res, state}
   end
@@ -129,7 +126,7 @@ defmodule Pigeon.User do
   def create_secret_room(pid, name) do
     GenServer.cast(pid, {:create_secret_room, as_atom(name)})
   end
-  
+
   # Deprecated
   def join_room(pid, name) do
     GenServer.call(pid, {:join_room, as_atom(name)})
@@ -140,7 +137,7 @@ defmodule Pigeon.User do
   end
 
   def send_message_to_room(pid, room, text, ttl) do
-    { int_ttl, _ } = Integer.parse(ttl)
+    {int_ttl, _} = Integer.parse(ttl)
     GenServer.cast(pid, {:send_message_to_room, {as_atom(room), text, int_ttl}})
   end
 
