@@ -25,18 +25,20 @@ En una consola
 ```bash
 iex --sname server@localhost -S mix
 ```
-```elixir
-{:ok, pid1} = Pigeon.UserRegistry.start_link(User1)
-{:ok, pid2} = Pigeon.UserRegistry.start_link(User2)
+```bash
+Pigeon.UserRegistry.create_user(User1)
+Pigeon.UserRegistry.create_user(User2)
 ```
 
 En otra consola
 ```bash
 iex --sname nodo1@localhost -S mix
 ```
-```elixir
-pid = Pigeon.User.login(User1)
+```bash
+  pid = Pigeon.User.login(User1)
 Pigeon.User.create_group_room(pid, IASC)
+#Pigeon.User.create_chat(pid, IASC) -- sala individual
+#Pigeon.User.create_secret_room(pid, IASC) -- sala individual secreta 
 ```
 
 En otra consola
@@ -53,4 +55,16 @@ Listo ya está todo conectado, ahora para mandar un mensaje:
 Consola 1 (nodo1)
 ```elixir
 Pigeon.User.send_message_to_room(pid, IASC, "Hola mundo!")
+```
+
+Para ver los mensajes, en el nodo server:
+
+```bash
+Pigeon.Rooms.Room.list_messages(IASC)
+```
+
+Para crear un mensaje secreto (se elimina automáticamente) a un room secreto:
+
+```bash
+Pigeon.User.send_message_to_room(pid, IASC, "Hola mundo!", 10000) # ttl es en milisegundos
 ```
