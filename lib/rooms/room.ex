@@ -203,7 +203,7 @@ defmodule Pigeon.Rooms.Room do
   @impl true
   def handle_call({:delete_message, {message_id, sender}}, _from, state) do
     index = Enum.find_index(state.messages, fn message -> message.id == message_id end)
-    message = Enum.at(state.messages, index)
+    message = index && Enum.at(state.messages, index)
 
     to_reply =
       case message do
